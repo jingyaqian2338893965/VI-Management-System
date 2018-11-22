@@ -1,0 +1,441 @@
+<!-- 
+<div class="lanmuContent">
+	<div class="btns">
+		<button class="btn btn-success add">添加</button>
+		<button class="btn btn-danger batchDelete">批量删除</button>
+	</div>
+	<table class="table table-bordered table-condensed">
+		<thead>
+			<tr>
+				<th>编号</th>
+				<th>栏目名称</th>
+				<th>父栏目</th>
+				<th>描述</th>
+				<th>操作</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr class="hidden">
+				<td><input type="checkbox" class="myCheck"></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>
+					<i class="glyphicon glyphicon-pencil update"></i>
+					&nbsp;&nbsp;&nbsp;&nbsp;
+					<i class="glyphicon glyphicon-trash deleteById"></i>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+<!--模态框-->
+<!-- <div class="modal">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<span class="mytitle">添加栏目信息</span>
+				<span class="close myClose">&times;</span>
+			</div>
+			<div class="modal-body">
+				<form action="#">
+					<span class="hiddenId"></span>
+					<span>栏目名称：</span>
+					<input type="text" class="lanmuName">
+					<span>描述：</span>
+					<input type="text" class="des">
+					<span>父栏目：</span>
+					<select name="" id="parent">
+						<option value="">--请选择--</option>
+					</select>
+				</form> -->
+			<!-- </div>
+			<div class="modal-footer">
+				<button class="btn btn-default myClose">取消</button>
+				<button class="btn btn-danger submit">确认</button>
+			</div>
+		</div>
+	</div>
+</div>
+</div>
+<script type="text/javascript">
+	$(function(){
+
+//请求所有栏目信息
+$.get("http://120.78.164.247:8099/manager/category/findAllCategory",function(results){
+	var lanmus=results.data;
+	lanmus.forEach(function(item){
+		var cloneTr=$(".hidden").clone();
+		cloneTr.removeAttr('class');
+
+		//设置每一个tr的内容
+		cloneTr.children(":first").children(":first").val(item.id);
+		$(cloneTr.children()[1]).text(item.name);
+		$(cloneTr.children()[3]).text(item.comment);
+		if(item.parent){
+			$(cloneTr.children()[2]).text(item.parent.name);
+		}else{
+			$(cloneTr.children()[2]).text("无");
+		}
+		
+
+
+
+		$("tbody").append(cloneTr);
+
+		//追加模态框中父栏目的option
+
+		var option="<option value='"+item.id+"'>"+item.name+"</option>";
+		$("#parent").append(option);
+
+
+
+
+	});
+
+	//批量删除
+	$(".batchDelete").click(function(){
+		var ids=[];
+		$(".myCheck:checked").each(function(index,item){
+			var id=$(item).val();
+			ids.push(id);
+
+		});
+
+		
+		if(ids.length){
+			var o={
+				ids:ids.toString()
+			}
+			$.post("http://120.78.164.247:8099/manager/category/batchDeleteCategory",o,function(results){
+			if(results.status==200){
+				$(".right-2").load('pages/lanmu.html');
+			}
+			});
+		}else{
+			alert("请选择想要删除的信息");
+		}
+
+		
+
+
+
+		
+	});
+	//添加按钮
+	$(".add").click(function(){
+		//修改模态框标题
+		$(".mytitle").text("添加栏目信息");
+		//模态框显示之前先清空表单内容
+		$(".lanmuName").val("");
+		$(".des").val("");
+		$("#parent").val("");
+		$(".hiddenId").text("");
+		//显示模态框
+		$(".modal").modal("show");
+	});
+
+
+
+
+	//修改按钮 更新
+	$(".update").click(function(){
+		$(".modal").modal("show");
+		$(".mytitle").text("修改栏目信息");
+		//获取当前行数据进行展示
+		var name=$(this).parent().parent().children()[1].innerHTML;
+		var des=$(this).parent().parent().children()[3].innerHTML;
+		var parent=$(this).parent().parent().children()[2].innerHTML;
+	//获取id 放在隐藏元素中用来判断是否为修改
+		var hiddenId=$(this).parent().parent().children(":first").children().val();
+		$(".hiddenId").text(hiddenId);
+
+		var id=lanmus.filter(function(item){
+			return item.name==parent;
+		})[0].id;
+
+		//设置
+		$(".lanmuName").val(name);
+		$(".des").val(des);
+		$("#parent").val(id);
+	});
+
+
+
+
+
+
+
+	//模态框确认按钮
+	$(".submit").click(function(){
+		var name=$(".lanmuName").val();
+		var des=$(".des").val();
+		var parent=$("#parent").val();
+		var hiddenId=$(".hiddenId").text();
+		if(hiddenId){
+			//此时id存在，应该修改
+			if(name && des){
+				if(parent){
+					var o={
+						id:hiddenId,
+						name:name,
+						comment:des,
+						parentId:parent,
+						no:1
+					}
+				}else{
+					var o={
+						id:hiddenId,
+						name:name,
+						comment:des,
+						no:1
+					}
+				}
+				
+			}else{
+				alert("请输入内容");
+			}
+		}else{
+			//此时id不存在，应该添加
+			if(name && des){
+				if(parent){
+					var o={
+						name:name,
+						comment:des,
+						parentId:parent,
+						no:1
+					}
+				}else{
+					var o={
+						name:name,
+						comment:des,
+						no:1
+					}
+				}
+				
+			}else{
+				alert("请输入内容");
+			}
+		}	
+		//发送保存/更新请求
+		$.post("http://120.78.164.247:8099/manager/category/saveOrUpdateCategory",o,function(result){
+			if(result.status==200){
+				$(".modal").modal("hide");	
+				$(".right-2").load('pages/lanmu.html');
+
+			}
+		})	
+		
+		
+	});
+
+	//模态框取消按钮
+	$(".myClose").click(function(){
+		$(".modal").modal("hide");
+	});
+
+	//单个删除
+	$(".deleteById").click(function(){
+		var id=$(this).parent().parent().children(':first').children().val();
+		var o={
+			id:Number(id)
+		}
+		$.get("http://120.78.164.247:8099/manager/category/deleteCategoryById",o,function(results){
+			if(results.status==200){
+				$(".right-2").load('pages/lanmu.html');
+			}else{
+				alert("删除失败！");
+			}
+		})
+	});
+
+});//findAll结束
+
+
+
+
+
+	});
+</script> -->
+<div id="app">
+	<div class="searchDiv">
+		<el-input size="mini" v-model="search" placeholder="请输入内容" style="width:200px;margin:20px"></el-input>
+		<el-button style="float:right;margin:20px"  type="success" size="mini" @click="add">新增</el-button>
+
+
+	</div>
+<el-table
+    :data="categoryList"
+    border
+    style="width: 100%" height="500">
+    <el-table-column
+      prop="name"
+      label="名称" align="center">
+    </el-table-column>
+    <el-table-column
+      prop="comment"
+      label="描述" align="center">
+    </el-table-column>
+    <el-table-column
+      prop="parent.name"
+      label="父栏目" align="center">
+    </el-table-column>
+
+      <el-table-column label="操作" align="center">
+      <template slot-scope="scope">
+        <el-button
+          size="mini"
+          @click="handleEdit(scope.$index, scope.row)">修改</el-button>
+        <el-button
+          size="mini"
+          type="danger"
+          @click="handleDelete(scope.$index, scope.row)">删除</el-button>
+      </template>
+    </el-table-column>
+  </el-table>
+    </el-table>
+
+
+    <!-- 引入模态框 -->
+    <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible">
+  <el-form :model="form">
+    <el-form-item label="栏目名称" :label-width="formLabelWidth">
+      <el-input v-model="form.name" autocomplete="off"></el-input>
+    </el-form-item>
+    <el-form-item label="父栏目" :label-width="formLabelWidth">
+      <el-select v-model="form.parentId" placeholder="请选择父栏目">
+        <el-option v-for="item in category" :label="item.name" :value="item.id"></el-option>
+      </el-select>
+    </el-form-item>
+
+     <el-form-item label="栏目描述" :label-width="formLabelWidth">
+      <el-input type="textarea" v-model="form.comment" autocomplete="off"></el-input>
+    </el-form-item>
+  </el-form>
+  </el-form>
+  <div slot="footer" class="dialog-footer">
+    <el-button @click="dialogFormVisible = false">取 消</el-button>
+    <el-button type="success" @click="save">确 定</el-button>
+  </div>
+
+
+</el-dialog>
+</div>
+<script type="text/javascript">
+// 设置基础路径
+axios.defaults.baseURL = "http://120.78.164.247:8099";
+// 设置post默认发送的数据格式为表单
+axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
+// axios默认get提交的格式为表单格式
+// 默认post发送的是json数据
+	new Vue({
+		el:"#app",
+		data:{
+			dialogTitle:'新增',
+			search:'',
+			dialogFormVisible:false,
+			formLabelWidth:'80px',
+			form:{},
+			category:[],
+		},
+		computed:{
+			categoryList(){
+				let vm  = this;
+				return this.category.filter(function(item){
+					if(item.name){
+						return item.name.indexOf(vm.search) != -1;
+					}else{
+						return true;
+					}
+					
+				})
+			}
+		},
+		methods:{
+			handleEdit(index,row){
+				this.dialogTitle="编辑";
+				//修改
+				//显示模态框，并且模态框中要有数据
+				//row 数据 给this.form
+				this.form = {
+					no:0,
+					comment:row.comment,
+					name:row.name,
+					id:row.id,
+					parentId:row.parent?row.parent.id:''
+				};
+				this.dialogFormVisible = true;
+			},
+			handleDelete(index,row){
+				//获取id
+				let vm = this;
+				axios.get('http://120.78.164.247:8099/manager/category/deleteCategoryById',{params:{id:row.id}}).then(function(param){
+					console.log(param);
+
+					//后台返回的所有的数据
+					console.log(param.data);
+
+					//在判断请求成功的时候判断后台执行是否成功
+					if(param.data.status==200){
+						vm.$message({
+          			showClose: true,
+          			message: '删除成功',
+          			type: 'success'
+                   });
+						vm.getData();
+					}else{
+						vm.$message({
+          			showClose: true,
+          			message: '删除失败',
+          			type: 'error'
+                   });
+					}
+
+				});
+
+			},
+
+
+			add(){
+				this.dialogTitle="新增";
+			//点击新增的时候 清空数据
+			this.form = {
+				no:0
+			},
+				this.dialogFormVisible = true;
+			},
+			save(){
+				// 点击确定之后 向后台传输数据 之后隐藏模态框 如果保存成功之后弹出提示框 并刷新数据
+				let vm = this;
+				axios.post('/manager/category/saveOrUpdateCategory',Qs.stringify(this.form)).then(function(param){
+					console.log(param);
+					vm.dialogFormVisible = false;
+					let msg = '';
+					if(vm.dialogTitle=="新增"){
+						msg = '保存';
+					}else{
+						msg='修改';
+					}
+					// if(vm.dialogTitle=='确定'){
+					vm.$message({
+          			showClose: true,
+          			message: msg+'成功',
+          			type: 'success'
+                   });
+				// }
+					vm.getData();
+				})
+			
+			},
+			getData(){
+				let vm = this;
+				axios.get('http://120.78.164.247:8099/manager/category/findAllCategory').then(function(param){
+					vm.category = param.data.data;
+				})
+			}
+		},
+		created(){
+			this.getData()
+		},
+
+	});
+</script>
